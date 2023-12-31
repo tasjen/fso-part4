@@ -21,7 +21,7 @@ test('all notes are returned', async () => {
 });
 
 test('the unique identifier property of the blog posts is named id', async () => {
-  const testBlog = new Blog(helper.listWithOneBlog);
+  const testBlog = new Blog(helper.listWithOneBlog[0]);
   const result = (await testBlog.save()).toJSON();
   expect(result.id).toBeDefined();
   await Blog.findByIdAndDelete(result.id);
@@ -30,7 +30,7 @@ test('the unique identifier property of the blog posts is named id', async () =>
 test('HTTP POST to /api/blogs to successfully creates a new blog post', async () => {
   await api
     .post('/api/blogs')
-    .send(helper.listWithOneBlog)
+    .send(helper.listWithOneBlog[0])
     .expect(201)
     .expect('Content-Type', /application\/json/);
 
@@ -42,13 +42,27 @@ test('HTTP POST to /api/blogs to successfully creates a new blog post', async ()
 });
 
 test('if the likes property is missing from the request, it will default to the value 0', async () => {
+  const {likes, ...blogWithoutLikes} = helper.listWithOneBlog[0];
   await api
     .post('/api/blogs')
-    .send(helper.listWithOneBlog);
+    .send(blogWithoutLikes);
   const blogs = await helper.blogsInDb();
-  const addedBlog = blogs.find((n) => n.title === helper.listWithOneBlog.title);
+  const addedBlog = blogs.find((n) => n.title === helper.listWithOneBlog[0].title);
   expect(addedBlog.likes).toBe(0);
 });
+
+test('if the title or url properties are missing from the POST request, response is 400', async () => {
+  const {title, ...blogWithoutTitle} = helper.listWithOneBlog[0];
+  await api
+    .post('/api/blogs')
+    .send(blogWithoutTitle)
+    .expect(400);
+  const {url, ...blogWithoutUrl} = helper.listWithOneBlog[0];
+  await api
+    .post('/api/blogs')
+    .send(blogWithoutUrl)
+    .expect(400);
+})
 
 afterAll(async () => {
   await mongoose.connection.close();

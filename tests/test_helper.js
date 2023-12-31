@@ -6,9 +6,9 @@ const dummy = (blogs) => {
 
 const listWithOneBlog = [
   {
-    title: 'Go To Statement Considered Harmful',
-    author: 'Edsger W. Dijkstra',
-    url: 'http://www.u.arizona.edu/~rubinson/copyright_violations/Go_To_Considered_Harmful.html',
+    title: 'title_test',
+    author: 'author_test',
+    url: 'url_test',
     likes: 5,
   },
 ];
