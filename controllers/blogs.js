@@ -7,12 +7,12 @@ blogsRouter.get('/', async (req, res) => {
 
 blogsRouter.post('/', async (req, res, next) => {
   try {
-    const { title, author, url, likes } = req.body;
+    const { title, author, url, likes = 0 } = req.body;
     const blog = new Blog({
       title,
       author,
       url,
-      likes: likes ?? 0,
+      likes,
     });
     const result = await blog.save();
     res.status(201).json(result);
@@ -39,12 +39,12 @@ blogsRouter.put('/:id', async (req, res) => {
       req.params.id,
       { title, author, url, likes },
       { new: true, runValidators: true, context: 'query' }
-    )
+    );
     res.json(updatedBlog);
   } catch (err) {
     res.status(400).end();
     next(err);
   }
-})
+});
 
 module.exports = blogsRouter;
