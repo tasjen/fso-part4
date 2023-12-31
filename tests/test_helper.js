@@ -65,6 +65,11 @@ const blogs = [
   },
 ];
 
+const blogsInDb = async () => {
+  const blogs = await Blog.find({})
+  return blogs.map(blog => blog.toJSON())
+}
+
 const totalLikes = (blogs) => {
   return blogs.reduce((total, blog) => total + blog.likes, 0);
 };

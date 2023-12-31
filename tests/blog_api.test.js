@@ -20,6 +20,18 @@ test('all notes are returned', async () => {
   expect(res.body).toHaveLength(helper.blogs.length);
 });
 
+test('the unique identifier property of the blog posts is named id', async () => {
+  const testBlog = new Blog({
+    title: 'title_test',
+    author: 'author_test',
+    url: 'url_test',
+    likes: 1,
+  })
+  const result = (await testBlog.save()).toJSON();
+  expect(result.id).toBeDefined();
+  await Blog.findByIdAndDelete(result.id);
+});
+
 afterAll(async () => {
   await mongoose.connection.close();
 });
