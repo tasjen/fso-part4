@@ -42,27 +42,43 @@ test('HTTP POST to /api/blogs to successfully creates a new blog post', async ()
 });
 
 test('if the likes property is missing from the request, it will default to the value 0', async () => {
-  const {likes, ...blogWithoutLikes} = helper.listWithOneBlog[0];
-  await api
-    .post('/api/blogs')
-    .send(blogWithoutLikes);
+  const { likes, ...blogWithoutLikes } = helper.listWithOneBlog[0];
+  await api.post('/api/blogs').send(blogWithoutLikes);
   const blogs = await helper.blogsInDb();
-  const addedBlog = blogs.find((n) => n.title === helper.listWithOneBlog[0].title);
+  const addedBlog = blogs.find(
+    (n) => n.title === helper.listWithOneBlog[0].title
+  );
   expect(addedBlog.likes).toBe(0);
 });
 
 test('if the title or url properties are missing from the POST request, response is 400', async () => {
-  const {title, ...blogWithoutTitle} = helper.listWithOneBlog[0];
+  const { title, ...blogWithoutTitle } = helper.listWithOneBlog[0];
   await api
     .post('/api/blogs')
     .send(blogWithoutTitle)
     .expect(400);
-  const {url, ...blogWithoutUrl} = helper.listWithOneBlog[0];
+
+  const { url, ...blogWithoutUrl } = helper.listWithOneBlog[0];
   await api
     .post('/api/blogs')
     .send(blogWithoutUrl)
     .expect(400);
-})
+});
+
+describe('deletion of a blog', () => {
+  test('succeeds with status code 204 if id is valid', async () => {
+    const blogToDelete = (await helper.blogsInDb())[0];
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .expect(204);
+
+    const blogsAfterDeletion = await helper.blogsInDb();
+    expect(blogsAfterDeletion).toHaveLength(helper.blogs.length - 1);
+
+    const titles = blogsAfterDeletion.map((n) => n.titles);
+    expect(titles).not.toContain(blogToDelete.title);
+  });
+});
 
 afterAll(async () => {
   await mongoose.connection.close();
