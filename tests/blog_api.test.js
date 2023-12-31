@@ -53,30 +53,35 @@ test('if the likes property is missing from the request, it will default to the 
 
 test('if the title or url properties are missing from the POST request, response is 400', async () => {
   const { title, ...blogWithoutTitle } = helper.listWithOneBlog[0];
-  await api
-    .post('/api/blogs')
-    .send(blogWithoutTitle)
-    .expect(400);
+  await api.post('/api/blogs').send(blogWithoutTitle).expect(400);
 
   const { url, ...blogWithoutUrl } = helper.listWithOneBlog[0];
-  await api
-    .post('/api/blogs')
-    .send(blogWithoutUrl)
-    .expect(400);
+  await api.post('/api/blogs').send(blogWithoutUrl).expect(400);
 });
 
 describe('deletion of a blog', () => {
   test('succeeds with status code 204 if id is valid', async () => {
     const blogToDelete = (await helper.blogsInDb())[0];
-    await api
-      .delete(`/api/blogs/${blogToDelete.id}`)
-      .expect(204);
+    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
 
     const blogsAfterDeletion = await helper.blogsInDb();
     expect(blogsAfterDeletion).toHaveLength(helper.blogs.length - 1);
 
     const titles = blogsAfterDeletion.map((n) => n.titles);
     expect(titles).not.toContain(blogToDelete.title);
+  });
+});
+
+describe('updating of a blog', () => {
+  test('succeeds with status code 200', async () => {
+    const blogToUpdate = (await helper.blogsInDb())[0];
+    await api
+      .put(`/api/blogs/${blogToUpdate.id}`)
+      .send({ ...blogToUpdate, likes: blogToUpdate.likes + 1 })
+      .expect(200);
+
+    const blogAfterUpdate = await Blog.findById(blogToUpdate.id);
+    expect(blogAfterUpdate.likes).toBe(blogToUpdate.likes + 1);
   });
 });
 
