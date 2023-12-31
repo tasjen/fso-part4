@@ -1,3 +1,4 @@
+const Blog = require('../models/blog');
 
 const dummy = (blogs) => {
   return 1;
@@ -118,6 +119,7 @@ module.exports = {
   dummy,
   listWithOneBlog,
   blogs,
+  blogsInDb,
   totalLikes,
   favoriteBlog,
   mostBlogs,
