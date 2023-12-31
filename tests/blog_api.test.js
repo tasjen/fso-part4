@@ -21,28 +21,16 @@ test('all notes are returned', async () => {
 });
 
 test('the unique identifier property of the blog posts is named id', async () => {
-  const testBlog = new Blog({
-    title: 'title_test',
-    author: 'author_test',
-    url: 'url_test',
-    likes: 1,
-  })
+  const testBlog = new Blog(helper.listWithOneBlog);
   const result = (await testBlog.save()).toJSON();
   expect(result.id).toBeDefined();
   await Blog.findByIdAndDelete(result.id);
 });
 
 test('HTTP POST to /api/blogs to successfully creates a new blog post', async () => {
-  const newBlog = {
-    title: 'title_test',
-    author: 'author_test',
-    url: 'url_test',
-    likes: 1,
-  };
-
   await api
     .post('/api/blogs')
-    .send(newBlog)
+    .send(helper.listWithOneBlog)
     .expect(201)
     .expect('Content-Type', /application\/json/);
 
@@ -50,8 +38,17 @@ test('HTTP POST to /api/blogs to successfully creates a new blog post', async ()
   expect(blogs).toHaveLength(helper.blogs.length + 1);
 
   const titles = blogs.map((n) => n.title);
-  expect(titles).toContain('title_test');
-})
+  expect(titles).toContain('Go To Statement Considered Harmful');
+});
+
+test('if the likes property is missing from the request, it will default to the value 0', async () => {
+  await api
+    .post('/api/blogs')
+    .send(helper.listWithOneBlog);
+  const blogs = await helper.blogsInDb();
+  const addedBlog = blogs.find((n) => n.title === helper.listWithOneBlog.title);
+  expect(addedBlog.likes).toBe(0);
+});
 
 afterAll(async () => {
   await mongoose.connection.close();
