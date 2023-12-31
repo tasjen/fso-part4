@@ -1,6 +1,6 @@
-const favoriteBlog = require('../utils/list_helper').favoriteBlog;
+const mostBlogs = require('../utils/list_helper').mostBlogs;
 
-describe('favorite blog', () => {
+describe('the author who has the largest amount of blogs', () => {
   const listWithOneBlog = [
     {
       _id: '5a422aa71b54a676234d17f8',
@@ -62,14 +62,17 @@ describe('favorite blog', () => {
     },
   ];
   test('of empty list is null', () => {
-    expect(favoriteBlog([])).toEqual(null);
+    expect(mostBlogs([])).toEqual(null);
   });
 
-  test('when list has only one blog, is that one blog', () => {
-    expect(favoriteBlog(listWithOneBlog)).toEqual(listWithOneBlog[0]);
+  test('when list has only one blog, is that author with one blog', () => {
+    expect(mostBlogs(listWithOneBlog)).toEqual({
+      author: listWithOneBlog[0].author,
+      blogs: 1,
+    });
   });
 
-  test('of a bigger list is a blog having the most likes', () => {
-    expect(favoriteBlog(blogs)).toEqual(blogs[2]);
+  test('of a bigger list is an author having the most blogs', () => {
+    expect(mostBlogs(blogs)).toEqual({ author: 'Robert C. Martin', blogs: 3 });
   });
-})
+});
