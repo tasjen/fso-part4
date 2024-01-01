@@ -166,7 +166,7 @@ describe.only('when there is initially one user in db', () => {
       .send({ username: 'username1', name: 'name1', password: 'p1' })
       .expect(400)
       .expect('Content-Type', /application\/json/);
-      
+
     const usersAtEnd = await helper.usersInDb();
     expect(usersAtEnd).toEqual(usersAtStart);
   });

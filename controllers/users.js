@@ -4,7 +4,8 @@ const bcrypt = require('bcrypt');
 const { ValidationError } = require('../utils/errors');
 
 usersRouter.get('/', async (req, res) => {
-  res.json(await User.find({}));
+  const users = await User.find({}).populate('blogs');
+  res.json(users);
 });
 
 usersRouter.post('/', async (req, res) => {
@@ -23,6 +24,7 @@ usersRouter.post('/', async (req, res) => {
     username,
     name,
     passwordHash,
+    blogs: []
   });
 
   const savedUser = await user.save();
