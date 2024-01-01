@@ -1,6 +1,6 @@
 const supertest = require('supertest');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcrypt');
 
 const helper = require('./test_helper');
 const app = require('../app');
@@ -136,6 +136,37 @@ describe.only('when there is initially one user in db', () => {
 
     expect(result.body.error).toContain('expected `username` to be unique');
 
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toEqual(usersAtStart);
+  });
+
+  test('adding a user without or less than 3 characters long username or password gives error', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    await api
+      .post('/api/users')
+      .send({ name: 'name1', password: 'password1' })
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    await api
+      .post('/api/users')
+      .send({ username: 'username1', name: 'name1' })
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    await api
+      .post('/api/users')
+      .send({ username: 'u1', name: 'name1', password: 'password1' })
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    await api
+      .post('/api/users')
+      .send({ username: 'username1', name: 'name1', password: 'p1' })
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+      
     const usersAtEnd = await helper.usersInDb();
     expect(usersAtEnd).toEqual(usersAtStart);
   });
