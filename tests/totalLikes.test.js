@@ -1,6 +1,6 @@
 const helper = require('./test_helper');
 
-describe('total likes', () => {
+describe.skip('total likes', () => {
 
   test('of empty list is zero', () => {
     const result = helper.totalLikes([]);

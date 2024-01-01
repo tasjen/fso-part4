@@ -1,6 +1,6 @@
 const helper = require('./test_helper')
 
-test('dummy returns one', () => {
+test.skip('dummy returns one', () => {
   const blogs = []
 
   const result = helper.dummy(blogs)

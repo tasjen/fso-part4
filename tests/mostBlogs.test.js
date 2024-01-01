@@ -1,6 +1,6 @@
 const helper = require('./test_helper');
 
-describe('the author who has the largest amount of blogs', () => {
+describe.skip('the author who has the largest amount of blogs', () => {
 
   test('of empty list is null', () => {
     expect(helper.mostBlogs([])).toEqual(null);

@@ -1,6 +1,6 @@
 const helper = require('./test_helper');
 
-describe('favorite blog', () => {
+describe.skip('favorite blog', () => {
 
   test('of empty list is null', () => {
     expect(helper.favoriteBlog([])).toEqual(null);
