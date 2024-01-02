@@ -9,11 +9,11 @@ blogsRouter.get('/', async (req, res) => {
 });
 
 blogsRouter.post('/', async (req, res) => {
-  const { title, author, url, likes = 0} = req.body;
+  const { title, author, url, likes = 0 } = req.body;
 
   const decodedToken = jwt.verify(req.token, process.env.SECRET);
   if (!decodedToken.id) {
-    return res.status(401).json({ error: 'token invalid'});
+    return res.status(401).json({ error: 'token invalid' });
   }
 
   const user = await User.findById(decodedToken.id);
@@ -23,7 +23,7 @@ blogsRouter.post('/', async (req, res) => {
     author,
     url,
     likes,
-    user: user.id
+    user: user.id,
   });
   const savedBlog = await blog.save();
 
@@ -34,7 +34,27 @@ blogsRouter.post('/', async (req, res) => {
 });
 
 blogsRouter.delete('/:id', async (req, res) => {
-  await Blog.findByIdAndDelete(req.params.id);
+
+  const decodedToken = jwt.verify(req.token, process.env.SECRET);
+  if (!decodedToken.id) {
+    return res.status(401).json({ error: 'token invalid' });
+  }
+
+  const blog = await Blog.findById(req.params.id);
+  if (!blog) {
+    return res.status(204).end();
+  }
+
+  const user = await User.findById(decodedToken.id);
+  if (!user) {
+    return res.status(404).json({ error: 'user not found' })
+  }
+
+  if (blog.user._id.toString() !== user._id.toString()) {
+    return res.status(401).json({ error: 'token invalid' });
+  }
+
+  blog.deleteOne();
   res.status(204).end();
 });
 
