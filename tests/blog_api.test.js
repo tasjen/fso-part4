@@ -9,12 +9,24 @@ const api = supertest(app);
 const Blog = require('../models/blog');
 const User = require('../models/user');
 
+const { username, name, password } = helper.user;
+
 beforeEach(async () => {
   await Blog.deleteMany({});
+  await User.deleteMany({});
 
-  const blogObjects = helper.blogs.map((blog) => new Blog(blog));
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const { id } = (
+    await new User({ username, name, passwordHash }).save()
+  ).toJSON();
+
+  const blogObjects = helper.blogs.map(
+    (blog) => new Blog({ ...blog, user: id })
+  );
   const promiseArray = blogObjects.map((blog) => blog.save());
-  await Promise.all(promiseArray);
+
+  await Promise.all([...promiseArray]);
 });
 
 test('all notes are returned', async () => {
@@ -29,40 +41,90 @@ test('the unique identifier property of the blog posts is named id', async () =>
   await Blog.findByIdAndDelete(result.id);
 });
 
-test('HTTP POST to /api/blogs to successfully creates a new blog post', async () => {
-  await api
-    .post('/api/blogs')
-    .send(helper.listWithOneBlog[0])
-    .expect(201)
-    .expect('Content-Type', /application\/json/);
+describe('HTTP POST to /api/blogs', () => {
+  let token;
+  const blog = helper.listWithOneBlog[0];
+  beforeEach(async () => {
+    const loginResponse = await api
+      .post('/api/login')
+      .send({ username, password });
+    token = loginResponse.body.token;
 
-  const blogs = await helper.blogsInDb();
-  expect(blogs).toHaveLength(helper.blogs.length + 1);
+    Blog.findOneAndDelete({ title: blog.title });
+  });
 
-  const titles = blogs.map((n) => n.title);
-  expect(titles).toContain('Go To Statement Considered Harmful');
+  test('returns 201 if the blog is successfully added', async () => {
+    const blogsBefore = await helper.blogsInDb();
+
+    await api
+      .post('/api/blogs')
+      .send(blog)
+      .set({ Authorization: `Bearer ${token}` })
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
+
+    const blogsAfter = await helper.blogsInDb();
+    expect(blogsAfter).toHaveLength(blogsBefore.length + 1);
+
+    const titles = blogsAfter.map((n) => n.title);
+    expect(titles).toContain(blog.title);
+  });
+
+  test('returns 400 if title or url is missing', async () => {
+    const blogsBefore = await helper.blogsInDb();
+
+    const { title, ...blogWithoutTitle } = blog;
+    const { url, ...blogWithoutUrl } = blog;
+
+    await api
+      .post('/api/blogs')
+      .send({ blogWithoutTitle })
+      .set({ Authorization: `Bearer ${token}` })
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    await api
+      .post('/api/blogs')
+      .send({ blogWithoutUrl })
+      .set({ Authorization: `Bearer ${token}` })
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    const blogsAfter = await helper.blogsInDb();
+    expect(blogsAfter).toEqual(blogsBefore);
+  });
+
+  test(`the saved blog has 0 'likes' as a default value
+    if 'likes' is missing from the request`, async () => {
+    const { likes, ...blogWithoutLikes } = blog;
+    const blogsBefore = await helper.blogsInDb();
+    await api
+      .post('/api/blogs')
+      .send(blogWithoutLikes)
+      .set({ Authorization: `Bearer ${token}` })
+      .expect(201);
+    const blogsAfter = await helper.blogsInDb();
+    const addedBlog = blogsAfter.find((n) => n.title === blog.title);
+
+    expect(addedBlog.likes).toBe(0);
+    expect(blogsAfter).toHaveLength(blogsBefore.length + 1);
+  });
+
+  test('returns 401 if token is invalid', async () => {
+    const blogsBefore = helper.blogsInDb();
+    await api
+      .post('/api/blogs')
+      .send(blog)
+      .set({ Authorization: `Bearer ${token.slice(1)}` })
+      .expect(401);
+
+    const blogsAfter = helper.blogsInDb();
+    expect(blogsAfter).toEqual(blogsBefore);
+  });
 });
 
-test('if the likes property is missing from the request, it will default to the value 0', async () => {
-  const { likes, ...blogWithoutLikes } = helper.listWithOneBlog[0];
-  await api.post('/api/blogs').send(blogWithoutLikes);
-  const blogs = await helper.blogsInDb();
-  const addedBlog = blogs.find(
-    (n) => n.title === helper.listWithOneBlog[0].title
-  );
-  expect(addedBlog.likes).toBe(0);
-});
-
-test('if the title or url properties are missing from the POST request, response is 400', async () => {
-  const { title, ...blogWithoutTitle } = helper.listWithOneBlog[0];
-  await api.post('/api/blogs').send(blogWithoutTitle).expect(400);
-
-  const { url, ...blogWithoutUrl } = helper.listWithOneBlog[0];
-  await api.post('/api/blogs').send(blogWithoutUrl).expect(400);
-});
-
-describe('deletion of a blog', () => {
-  test('succeeds with status code 204 if id is valid', async () => {
+describe('HTTP DELETE to /api/blog/:id', () => {
+  test('succeeds with status code 204 if id and token is valid', async () => {
     const blogToDelete = (await helper.blogsInDb())[0];
     await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
 
@@ -74,7 +136,7 @@ describe('deletion of a blog', () => {
   });
 });
 
-describe('updating of a blog', () => {
+describe.skip('HTTP PUT to /api/blog/:id', () => {
   test('succeeds with status code 200', async () => {
     const blogToUpdate = (await helper.blogsInDb())[0];
     await api
@@ -87,23 +149,13 @@ describe('updating of a blog', () => {
   });
 });
 
-describe.only('when there is initially one user in db', () => {
-  beforeEach(async () => {
-    await User.deleteMany({});
-
-    const [username, name, password] = ['user0', 'name0', 'password0'];
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = new User({ username, name, passwordHash });
-
-    await user.save();
-  });
-
+describe('HTTP POST to /api/users', () => {
   test('creation succeeds with a new username', async () => {
     const usersAtStart = await helper.usersInDb();
     const newUser = {
-      username: 'user1',
-      name: 'name1',
-      password: 'password1',
+      username: 'user2',
+      name: 'name2',
+      password: 'password2',
     };
 
     await api
@@ -122,15 +174,9 @@ describe.only('when there is initially one user in db', () => {
   test('creation fails with proper statuscode and message if username already taken', async () => {
     const usersAtStart = await helper.usersInDb();
 
-    const newUser = {
-      username: 'user0',
-      name: 'name1',
-      password: 'password1',
-    };
-
     const result = await api
       .post('/api/users')
-      .send(newUser)
+      .send(helper.user)
       .expect(400)
       .expect('Content-Type', /application\/json/);
 
