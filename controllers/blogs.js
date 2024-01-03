@@ -9,21 +9,20 @@ blogsRouter.get('/', async (req, res) => {
 
 blogsRouter.post('/', userExtractor, async (req, res) => {
   const { title, author, url, likes = 0 } = req.body;
-  const user = req.user;
+  const user = req.user;  
 
   const blog = new Blog({
     title,
     author,
     url,
     likes,
-    user: user.id,
+    user: user._id,
   });
   const savedBlog = await blog.save();
-
   user.blogs = [...user.blogs, savedBlog._id];
   await user.save();
-
-  res.status(201).json(savedBlog);
+  
+  res.status(201).json(await savedBlog.populate('user'));
 });
 
 blogsRouter.delete('/:id', userExtractor, async (req, res) => {
