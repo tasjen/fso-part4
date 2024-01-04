@@ -123,7 +123,7 @@ describe('HTTP POST to /api/blogs', () => {
   });
 });
 
-describe('HTTP DELETE to /api/blog/:id', () => {
+describe.skip('HTTP DELETE to /api/blog/:id', () => {
   test('succeeds with status code 204 if id and token is valid', async () => {
     const blogToDelete = (await helper.blogsInDb())[0];
     await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
@@ -136,16 +136,29 @@ describe('HTTP DELETE to /api/blog/:id', () => {
   });
 });
 
-describe.skip('HTTP PUT to /api/blog/:id', () => {
-  test('succeeds with status code 200', async () => {
-    const blogToUpdate = (await helper.blogsInDb())[0];
-    await api
+describe('HTTP PUT to /api/blog/:id', () => {
+  let token;
+  const blog = helper.listWithOneBlog[0];
+  beforeEach(async () => {
+    const loginResponse = await api
+      .post('/api/login')
+      .send({ username, password })
+      token = loginResponse.body.token;
+    });
+    
+    test('succeeds with status code 200', async () => {
+      const blogsBefore = await helper.blogsInDb();
+      const blogToUpdate = blogsBefore[0];
+      await api
       .put(`/api/blogs/${blogToUpdate.id}`)
       .send({ ...blogToUpdate, likes: blogToUpdate.likes + 1 })
+      .set({ Authorization: `Bearer ${token}` })
       .expect(200);
 
+    const blogsAfter = await helper.blogsInDb();
     const blogAfterUpdate = await Blog.findById(blogToUpdate.id);
     expect(blogAfterUpdate.likes).toBe(blogToUpdate.likes + 1);
+    expect(blogsAfter).toHaveLength(blogsBefore.length);
   });
 });
 

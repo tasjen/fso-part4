@@ -21,22 +21,18 @@ blogsRouter.post('/', userExtractor, async (req, res) => {
   const savedBlog = await blog.save();
   user.blogs = [...user.blogs, savedBlog._id];
   await user.save();
-  
+
   res.status(201).json(await savedBlog.populate('user'));
 });
 
 blogsRouter.delete('/:id', userExtractor, async (req, res) => {
 
   const blog = await Blog.findById(req.params.id);
-  if (!blog) {
+  if (blog === null) {
     return res.status(204).end();
   }
 
   const user = req.user;
-  if (!user) {
-    return res.status(404).json({ error: 'user not found' })
-  }
-
   if (blog.user._id.toString() !== user._id.toString()) {
     return res.status(401).json({ error: 'token invalid' });
   }
@@ -45,14 +41,16 @@ blogsRouter.delete('/:id', userExtractor, async (req, res) => {
   res.status(204).end();
 });
 
-blogsRouter.put('/:id', async (req, res) => {
+blogsRouter.put('/:id', userExtractor, async (req, res) => {
+
   const { title, author, url, likes } = req.body;
   const updatedBlog = await Blog.findByIdAndUpdate(
     req.params.id,
     { title, author, url, likes },
     { new: true, runValidators: true, context: 'query' }
   );
-  res.json(updatedBlog);
+  res.json(await updatedBlog.populate('user'));
+  
 });
 
 module.exports = blogsRouter;
