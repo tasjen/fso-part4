@@ -123,33 +123,55 @@ describe('HTTP POST to /api/blogs', () => {
   });
 });
 
-describe.skip('HTTP DELETE to /api/blog/:id', () => {
+describe('HTTP DELETE to /api/blog/:id', () => {
+  let token;
+  beforeEach(async () => {
+    const loginResponse = await api
+      .post('/api/login')
+      .send({ username, password });
+    token = loginResponse.body.token;
+  });
+
   test('succeeds with status code 204 if id and token is valid', async () => {
+    const blogsBefore = await helper.blogsInDb();
     const blogToDelete = (await helper.blogsInDb())[0];
-    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .set({ Authorization: `Bearer ${token}` })
+      .expect(204);
 
-    const blogsAfterDeletion = await helper.blogsInDb();
-    expect(blogsAfterDeletion).toHaveLength(helper.blogs.length - 1);
-
-    const titles = blogsAfterDeletion.map((n) => n.titles);
+    const blogsAfter = await helper.blogsInDb();
+    expect(blogsAfter).toHaveLength(blogsBefore.length - 1);
+    const titles = blogsAfter.map((n) => n.titles);
     expect(titles).not.toContain(blogToDelete.title);
+  });
+
+  test('fails with status code 401 if token is invalid', async () => {
+    const blogsBefore = await helper.blogsInDb();
+    const blogToDelete = (await helper.blogsInDb())[0];
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .set({ Authorization: `Bearer ${token.slice(1)}` })
+      .expect(401);
+
+    const blogsAfter = await helper.blogsInDb();
+    expect(blogsAfter).toHaveLength(blogsBefore.length);
   });
 });
 
 describe('HTTP PUT to /api/blog/:id', () => {
   let token;
-  const blog = helper.listWithOneBlog[0];
   beforeEach(async () => {
     const loginResponse = await api
       .post('/api/login')
-      .send({ username, password })
-      token = loginResponse.body.token;
-    });
-    
-    test('succeeds with status code 200', async () => {
-      const blogsBefore = await helper.blogsInDb();
-      const blogToUpdate = blogsBefore[0];
-      await api
+      .send({ username, password });
+    token = loginResponse.body.token;
+  });
+
+  test('succeeds with status code 200', async () => {
+    const blogsBefore = await helper.blogsInDb();
+    const blogToUpdate = blogsBefore[0];
+    await api
       .put(`/api/blogs/${blogToUpdate.id}`)
       .send({ ...blogToUpdate, likes: blogToUpdate.likes + 1 })
       .set({ Authorization: `Bearer ${token}` })
