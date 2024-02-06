@@ -18,6 +18,8 @@ const blogSchema = new mongoose.Schema({
   comments: [
     {
       type: String,
+      trim: true,
+      required: true,
     },
   ],
 });

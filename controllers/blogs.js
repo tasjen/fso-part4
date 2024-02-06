@@ -57,7 +57,7 @@ blogsRouter.post('/:id/comments', userExtractor, async (req, res) => {
   blogToUpdate.comments.push(comment);
   const savedBlog = await blogToUpdate.save();
 
-  res.json(savedBlog);
+  res.json(await savedBlog.populate('user'));
 });
 
 module.exports = blogsRouter;
