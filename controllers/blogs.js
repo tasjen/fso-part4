@@ -9,7 +9,7 @@ blogsRouter.get('/', async (req, res) => {
 
 blogsRouter.post('/', userExtractor, async (req, res) => {
   const { title, author, url, likes = 0 } = req.body;
-  const user = req.user;  
+  const user = req.user;
 
   const blog = new Blog({
     title,
@@ -26,7 +26,6 @@ blogsRouter.post('/', userExtractor, async (req, res) => {
 });
 
 blogsRouter.delete('/:id', userExtractor, async (req, res) => {
-
   const blog = await Blog.findById(req.params.id);
   if (blog === null) {
     return res.status(204).end();
@@ -42,7 +41,6 @@ blogsRouter.delete('/:id', userExtractor, async (req, res) => {
 });
 
 blogsRouter.put('/:id', userExtractor, async (req, res) => {
-
   const { title, author, url, likes } = req.body;
   const updatedBlog = await Blog.findByIdAndUpdate(
     req.params.id,
@@ -50,7 +48,16 @@ blogsRouter.put('/:id', userExtractor, async (req, res) => {
     { new: true, runValidators: true, context: 'query' }
   );
   res.json(await updatedBlog.populate('user'));
-  
+});
+
+blogsRouter.post('/:id/comments', userExtractor, async (req, res) => {
+  const { comment } = req.body;
+  const { id } = req.params;
+  const blogToUpdate = await Blog.findById(id);
+  blogToUpdate.comments.push(comment);
+  const savedBlog = await blogToUpdate.save();
+
+  res.json(savedBlog);
 });
 
 module.exports = blogsRouter;
